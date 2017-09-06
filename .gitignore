@@ -2,5 +2,5 @@
 vendor/
 _vendor-[0-9]*
 .vscode/
-albiondata-natsdumper
-albiondata-natsdumper.exe
+./albiondata-natsdumper
+./albiondata-natsdumper.exe
