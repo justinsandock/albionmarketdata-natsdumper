@@ -1,0 +1,98 @@
+version: 2
+jobs:
+  test:
+    working_directory: /go/src/github.com/albiondata/albiondata-natsdumper
+    docker:
+      - image: circleci/golang:1.9
+    steps:
+      - checkout
+      - run: go get golang.org/x/tools/cmd/goimports
+      - run: make validate-fmt
+  build_windows:
+    working_directory: /go/src/github.com/albiondata/albiondata-natsdumper
+    docker:
+      - image: circleci/golang:1.9
+    steps:
+      - checkout
+      - run: make build-windows
+      - store_artifacts:
+          path: /go/src/github.com/albiondata/albiondata-natsdumper/albiondata-natsdumper-windows-amd64.exe.gz
+          destination: albiondata-natsdumper-windows-amd64.exe.gz
+      - persist_to_workspace:
+          root: /go/src/github.com/albiondata/albiondata-natsdumper
+          paths:
+            - albiondata-natsdumper-windows-amd64.exe.gz
+  build_linux:
+    working_directory: /go/src/github.com/albiondata/albiondata-natsdumper
+    docker:
+      - image: circleci/golang:1.9
+    steps:
+      - checkout
+      - run: make build-linux
+      - store_artifacts:
+          path: /go/src/github.com/albiondata/albiondata-natsdumper/albiondata-natsdumper-linux-amd64.gz
+          destination: albiondata-natsdumper-linux-amd64.gz
+      - persist_to_workspace:
+          root: /go/src/github.com/albiondata/albiondata-natsdumper
+          paths:
+            - albiondata-natsdumper-linux-amd64.gz
+  build_darwin:
+    working_directory: /go/src/github.com/albiondata/albiondata-natsdumper
+    docker:
+      - image: circleci/golang:1.9
+    steps:
+      - checkout
+      - run: make build-darwin
+      - store_artifacts:
+          path: /go/src/github.com/albiondata/albiondata-natsdumper/albiondata-natsdumper-darwin-amd64.gz
+          destination: albiondata-natsdumper-darwin-amd64.gz
+      - persist_to_workspace:
+          root: /go/src/github.com/albiondata/albiondata-natsdumper
+          paths:
+            - albiondata-natsdumper-darwin-amd64.gz
+  deploy:
+    working_directory: /tmp/workspace
+    docker:
+      - image: circleci/golang:1.9
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run: go get github.com/tcnksm/ghr
+      - run: ghr -t $GITHUB_TOKEN -u regner -r albiondata-client $CIRCLE_TAG /tmp/workspace
+workflows:
+  version: 2
+  test_build_release:
+    jobs:
+      - test:
+          filters:
+            tags:
+              only: /.*/
+      - build_windows:
+          requires:
+            - test
+          filters:
+            tags:
+              only: /.*/
+      - build_linux:
+          requires:
+            - test
+          filters:
+            tags:
+              only: /.*/
+      - build_darwin:
+          requires:
+            - test
+          filters:
+            tags:
+              only: /.*/
+      - deploy:
+          requires:
+            - build_windows
+            - build_linux
+            - build_darwin
+          filters:
+            tags:
+              only: /^\d+\.\d+\.\d+$/
+            branches:
+              ignore: /.*/
+
